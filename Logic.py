@@ -29,7 +29,7 @@ class Logic(QMainWindow, Ui_Teams_Window):
         super().__init__()
         self.ui = Ui_Teams_Window()
         self.people_list: list[list[str, int]] = []
-        self.team_list: list[list[list[str, int]]] = []
+        self.random_count = 0
         self.total: int = 0
         self.ui.setupUi(self)
         self.ui.Per_Group_Label.setVisible(False)
@@ -43,6 +43,7 @@ class Logic(QMainWindow, Ui_Teams_Window):
         self.ui.Reset_Button.setVisible(False)
         self.ui.Add_Person_Button.clicked.connect(self.add_person)
         self.ui.Continue_Button.clicked.connect(self.cont)
+        self.ui.TotalPeople_Label.setText(f'Total: {self.total}')
 
     def add_person(self) -> None:
         """
@@ -50,8 +51,8 @@ class Logic(QMainWindow, Ui_Teams_Window):
 
         Checks if the entered name is alphabetic and the age is numeric.
         """
-        name: str = self.ui.Name_Entry.text()
-        age: str = self.ui.Age_Entry.text()
+        name: str = self.ui.Name_Entry.text().rstrip()
+        age: str = self.ui.Age_Entry.text().rstrip()
         if name.isalpha() and age.isnumeric():
             person: list[str, int] = [name, int(age)]
             self.people_list.append(person)
@@ -59,6 +60,7 @@ class Logic(QMainWindow, Ui_Teams_Window):
             self.total += 1
             self.ui.Name_Entry.setText('')
             self.ui.Age_Entry.setText('')
+            self.ui.TotalPeople_Label.setText(f'Total: {self.total}')
         elif not name.isalpha() and age.isnumeric():
             self.ui.Error_Label.setVisible(True)
             self.ui.Error_Label.setText('Names must be letters')
@@ -87,29 +89,40 @@ class Logic(QMainWindow, Ui_Teams_Window):
         """
         Randomly assigns people to teams and writes the teams to a CSV file.
         """
+        with open('teams.csv', 'w', newline=''):
+            # clears CSV file
+            pass
         num_elements: int = self.ui.spinBox.value()
         if self.total % num_elements == 0:
-            for j in range(int(len(self.people_list) / num_elements)):
+            temp_people: list[list[str, int]] = self.people_list.copy()
+            for j in range(int(len(temp_people) / num_elements)):
                 team: list[list[str, int]] = []
-                for i in range(num_elements):
-                    random_index: int = random.randint(0, len(self.people_list) - 1)
-                    team.append(self.people_list.pop(random_index))
-                self.team_list.append(team)
-            with open('teams.csv', 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(self.team_list)
+                with open('teams.csv', 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    for i in range(num_elements):
+                        random_index: int = random.randint(0, len(temp_people) - 1)
+                        team.append(temp_people.pop(random_index))
+                    writer.writerow(team)
+            self.random_count += 1
+            self.ui.Error_Label.setVisible(True)
+            self.ui.Error_Label.setText(f'Randomized {self.random_count} times')
         else:
             self.ui.Error_Label.setVisible(True)
             self.ui.Error_Label.setText("Make sure it's divisible!")
 
     def reset(self) -> None:
         """
-        Resets the UI elements to their initial state.
+        Resets the UI elements and variables to their initial state.
         """
         self.ui.spinBox.setVisible(False)
         self.ui.Error_Label.setVisible(False)
         self.ui.Per_Group_Label.setVisible(False)
         self.ui.Randomize_Button.setVisible(False)
         self.ui.Reset_Button.setVisible(False)
+        self.ui.Error_Label.setVisible(False)
         self.ui.Name_Entry.setText('')
         self.ui.Age_Entry.setText('')
+        self.people_list = []
+        self.total = 0
+        self.random_count = 0
+        self.ui.TotalPeople_Label.setText(f'Total: {self.total}')
